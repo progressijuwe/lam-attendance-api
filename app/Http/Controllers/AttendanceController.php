@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Attendance;
+use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Cloudinary\Cloudinary;
 
 class AttendanceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $records = Attendance::orderBy('created_at', 'desc')->get();
@@ -18,29 +16,30 @@ class AttendanceController extends Controller
         return response()->json($records->map(function ($record) {
             return [
                 ...$record->toArray(),
-                'time' => \Carbon\Carbon::parse($record->time)->format('h:i a'),
+                'time' => Carbon::parse($record->time)->format('h:i a'),
             ];
         }));
     }
 
-    // POST /api/attendance
     public function store(Request $request)
     {
         $request->validate([
-            'first_name'  => 'required|string',
-            'last_name'   => 'required|string',
-            'department'  => 'required|string',
-            'live_image'  => 'required|image',
+            'first_name' => 'required|string',
+            'last_name'  => 'required|string',
+            'department' => 'required|string',
+            'live_image' => 'required|image',
         ]);
 
-        // store the image
-        $path = cloudinary()->upload($request->file('live_image')->getRealPath())->getSecurePath();
+        $cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
+        $result = $cloudinary->uploadApi()->upload(
+            $request->file('live_image')->getRealPath()
+        );
+        $path = $result['secure_url'];
 
-        // determine status based on day + time
-        $now     = Carbon::now();
-        $hour    = $now->hour;
-        $minute  = $now->minute;
-        $day     = $now->dayOfWeek; // 0=Sun, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+        $now    = Carbon::now();
+        $hour   = $now->hour;
+        $minute = $now->minute;
+        $day    = $now->dayOfWeek;
 
         $isLate = false;
         if ($day === 0) {
@@ -60,29 +59,5 @@ class AttendanceController extends Controller
         ]);
 
         return response()->json($attendance, 201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }
