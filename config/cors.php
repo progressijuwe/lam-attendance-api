@@ -21,7 +21,7 @@ return [
 
     'allowed_origins' => [
         'http://localhost:5173',
-        'https://lam-attendance-react.vercel.app/',
+        'https://lam-attendance-react.vercel.app',
     ],
 
     'allowed_origins_patterns' => [],
