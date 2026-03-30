@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\LocationHelper;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -28,14 +29,44 @@ class AttendanceController extends Controller
             'last_name'  => 'required|string',
             'department' => 'required|string',
             'live_image' => 'required|image',
+            'lat'        => 'required|numeric|between:-90,90',
+            'lng'        => 'required|numeric|between:-180,180',
         ]);
+
+        // Location check — backend security gate
+        $lat = (float) $request->lat;
+        $lng = (float) $request->lng;
+
+        if (!LocationHelper::isWithinRadius($lat, $lng)) {
+            $distance = LocationHelper::distanceMeters(
+                $lat, $lng,
+                (float) env('CHURCH_LAT'),
+                (float) env('CHURCH_LNG')
+            );
+
+            return response()->json([
+                'message'         => 'You are not within the church premises.',
+                'distance_meters' => round($distance),
+            ], 403);
+        }
 
         $cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
         $result = $cloudinary->uploadApi()->upload(
-            $request->file('live_image')->getRealPath()
+            $request->file('live_image')->getRealPath(),
+            [
+                'folder'         => 'attendance',
+                'transformation' => [
+                    'width'        => 800,
+                    'height'       => 800,
+                    'crop'         => 'limit',
+                    'quality'      => 'auto',
+                    'fetch_format' => 'auto',
+                ],
+            ]
         );
         $path = $result['secure_url'];
 
+        // Your existing late logic (unchanged)
         $now    = Carbon::now();
         $hour   = $now->hour;
         $minute = $now->minute;
@@ -48,14 +79,24 @@ class AttendanceController extends Controller
             $isLate = $hour > 17 || ($hour === 17 && $minute >= 30);
         }
 
+        // Calculate exact distance for the record
+        $distance = LocationHelper::distanceMeters(
+            $lat, $lng,
+            (float) env('CHURCH_LAT'),
+            (float) env('CHURCH_LNG')
+        );
+
         $attendance = Attendance::create([
-            'first_name'   => $request->first_name,
-            'last_name'    => $request->last_name,
-            'department'   => $request->department,
-            'picture_path' => $path,
-            'status'       => $isLate ? 'LATE' : 'ON-TIME',
-            'time'         => $now->format('H:i:s'),
-            'date'         => $now->toDateString(),
+            'first_name'      => $request->first_name,
+            'last_name'       => $request->last_name,
+            'department'      => $request->department,
+            'picture_path'    => $path,
+            'lat'             => $lat,
+            'lng'             => $lng,
+            'distance_meters' => round($distance, 2),
+            'status'          => $isLate ? 'LATE' : 'ON-TIME',
+            'time'            => $now->format('H:i:s'),
+            'date'            => $now->toDateString(),
         ]);
 
         return response()->json($attendance, 201);
