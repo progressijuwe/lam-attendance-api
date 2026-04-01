@@ -20,4 +20,11 @@ class Attendance extends Model
         'time',
         'date',
     ];
+
+    public function getDepartmentLabelAttribute()
+    {
+        return ucwords(str_replace('_', ' ', $this->department));
+    }
+    
+    protected $appends = ['department_label'];
 }

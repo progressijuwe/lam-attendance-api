@@ -17,6 +17,7 @@ class AttendanceController extends Controller
         return response()->json($records->map(function ($record) {
             return [
                 ...$record->toArray(),
+                'department_label' => $record->department_label,
                 'time' => Carbon::parse($record->time)->format('h:i a'),
             ];
         }));
@@ -66,7 +67,6 @@ class AttendanceController extends Controller
         );
         $path = $result['secure_url'];
 
-        // Your existing late logic (unchanged)
         $now    = Carbon::now();
         $hour   = $now->hour;
         $minute = $now->minute;
