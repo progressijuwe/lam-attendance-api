@@ -6,6 +6,7 @@ use App\Helpers\LocationHelper;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Cloudinary\Cloudinary;
 
 class AttendanceController extends Controller
@@ -32,13 +33,15 @@ class AttendanceController extends Controller
             'live_image' => 'required|image',
             'lat'        => 'required|numeric|between:-90,90',
             'lng'        => 'required|numeric|between:-180,180',
+            'accuracy'   => 'required|numeric|min:0',
         ]);
 
         // Location check — backend security gate
-        $lat = (float) $request->lat;
-        $lng = (float) $request->lng;
+        $lat      = (float) $request->lat;
+        $lng      = (float) $request->lng;
+        $accuracy = (float) $request->accuracy;
 
-        if (!LocationHelper::isWithinRadius($lat, $lng)) {
+        if (!LocationHelper::isWithinRadius($lat, $lng, $accuracy)) {
             $distance = LocationHelper::distanceMeters(
                 $lat, $lng,
                 (float) env('CHURCH_LAT'),

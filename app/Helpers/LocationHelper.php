@@ -16,13 +16,13 @@ class LocationHelper
         return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
-    public static function isWithinRadius(float $lat, float $lng): bool
+    public static function isWithinRadius(float $lat, float $lng, float $tolerance = 0): bool
     {
         $distance = self::distanceMeters(
             $lat, $lng,
             (float) env('CHURCH_LAT'),
             (float) env('CHURCH_LNG')
         );
-        return $distance <= (float) env('CHURCH_RADIUS_METERS');
+        return $distance <= ((float) env('CHURCH_RADIUS_METERS', 50) + $tolerance);
     }
 }
