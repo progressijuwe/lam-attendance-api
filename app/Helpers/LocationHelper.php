@@ -23,6 +23,6 @@ class LocationHelper
             (float) env('CHURCH_LAT'),
             (float) env('CHURCH_LNG')
         );
-        return $distance <= ((float) env('CHURCH_RADIUS_METERS', 50) + $tolerance);
+        return $distance <= ((float) env('CHURCH_RADIUS_METERS', 80) + $tolerance);
     }
 }
